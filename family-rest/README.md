@@ -203,6 +203,3 @@ Sample response body:
   ]
 }
 ```
-
-
-GET         /people/:id/familytree
