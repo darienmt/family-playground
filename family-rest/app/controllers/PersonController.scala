@@ -2,25 +2,22 @@ package controllers
 
 import java.util.UUID
 
-import dal.{SearchAccess, DataAccess}
+import components.{FamilyTreeComponent, SearchAccessComponent, DataAccessComponent, ExecutionContextComponent}
 import data.Person
-
-import org.reactivecouchbase.play.PlayCouchbase
-
-import play.api.libs.json.{JsError, JsSuccess, Json}
+import play.api.libs.json.{JsSuccess, JsError, Json}
 import play.api.mvc.{Action, Controller}
+
 
 import scala.concurrent.Future
 import scala.util.{Success, Failure, Try}
 
-import play.api.Play.current
 
 /**
-  * Person operations
+  * Person controller
   */
-object PersonActions extends Controller {
+trait PersonController extends Controller {
 
-  implicit val couchbaseExecutionContext = PlayCouchbase.couchbaseExecutor
+  this: ExecutionContextComponent with DataAccessComponent with SearchAccessComponent with FamilyTreeComponent=>
 
   /**
     * Returns a person by name.
@@ -33,7 +30,7 @@ object PersonActions extends Controller {
     }) match {
       case Failure(e) => Future.successful( BadRequest(Json.obj("message" -> s"The provided id($id) is not an UUID")) )
       case Success( myId ) =>
-        DataAccess.getPerson(myId) map {
+        dataAccess.getPerson(myId) map {
           case Some(person) => Ok(Json.toJson(person))
           case None => NotFound(Json.obj("message" -> s"There is no person with id $id"))
         }
@@ -50,8 +47,8 @@ object PersonActions extends Controller {
       case jsPerson: JsSuccess[Person] => {
         val person: Person = jsPerson.get
         for {
-          result <- DataAccess.savePerson(person)
-          indexResult <- SearchAccess.indexPerson(person)
+          result <- dataAccess.savePerson(person)
+          indexResult <- searchAccess.indexPerson(person)
         } yield Ok( Json.obj( "Location" -> ("/people/" + person.id.toString) ))
       }
     }
@@ -63,7 +60,7 @@ object PersonActions extends Controller {
     * @return
     */
   def getPeopleByName( name: String ) = Action.async {
-    SearchAccess.searchPeopleByName( name, 0, 100 ) map {
+    searchAccess.searchPeopleByName(name, 0, 100) map {
       people => Ok(Json.toJson(people))
     }
   }
@@ -80,7 +77,7 @@ object PersonActions extends Controller {
     }) match {
       case Failure(e) => Future.successful( BadRequest(Json.obj("message" -> s"The provided id($id) is not an UUID")) )
       case Success( myId ) =>
-        FamilyTreeLogic.buildTree(myId, maxDepth) map {
+        familyTreeLogic.buildTree(myId, maxDepth) map {
           tree => Ok(Json.toJson(tree))
         }
     }
@@ -92,4 +89,16 @@ object PersonActions extends Controller {
     * @return
     */
   def getFamilyTreeDefault( id : String ) = getFamilyTree(id, 1)
+
+  def getPeopleInRelationAtDepth( id: String, relationType: String, depth: Int) = Action.async {
+    Try( {
+      UUID.fromString( id )
+    }) match {
+      case Failure(e) => Future.successful( BadRequest(Json.obj("message" -> s"The provided id($id) is not an UUID")) )
+      case Success( myId ) =>
+        familyTreeLogic.getRelationsAt(myId, relationType, depth) map {
+          people => Ok(Json.toJson(people))
+        }
+    }
+  }
 }

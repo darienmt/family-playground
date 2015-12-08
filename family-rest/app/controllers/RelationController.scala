@@ -2,25 +2,20 @@ package controllers
 
 import java.util.UUID
 
-import dal.{SearchAccess, DataAccess}
-import data.{Relation, RelatedTo, Person}
-
-import org.reactivecouchbase.play.PlayCouchbase
-
-import play.api.libs.json.{JsError, JsSuccess, Json}
+import components.{SearchAccessComponent, DataAccessComponent, ExecutionContextComponent}
+import data.{Relation, RelatedTo}
+import play.api.libs.json.{JsSuccess, JsError, Json}
 import play.api.mvc.{Action, Controller}
 
 import scala.concurrent.Future
-import scala.util.{Try, Success, Failure}
-
-import play.api.Play.current
+import scala.util.{Success, Failure, Try}
 
 /**
-  * Relation operations.
+  * Relation controller
   */
-object RelationActions extends Controller{
+trait RelationController extends Controller {
 
-  implicit val couchbaseExecutionContext = PlayCouchbase.couchbaseExecutor
+  this : ExecutionContextComponent with DataAccessComponent with SearchAccessComponent =>
 
   /**
     * Finds the relation between two persons.
@@ -33,7 +28,7 @@ object RelationActions extends Controller{
       case Failure(e) => Future.successful( BadRequest(Json.obj("message" -> s"The provided id($fromId) is not an UUID")) )
       case Success(myFromId) => Try( { UUID.fromString( toId ) } ) match {
         case Failure(e) => Future.successful( BadRequest(Json.obj("message" -> s"The provided person related to ($toId) is not an UUID")) )
-        case Success(myToId) => DataAccess.getRelation(myFromId, myToId ) map {
+        case Success(myToId) => dataAccess.getRelation(myFromId, myToId ) map {
           case None => NotFound(Json.obj("message" -> s"There is no relation between $fromId and $toId"))
           case Some(relation) => Ok(Json.obj("relation" -> relation.relationType))
         }
@@ -55,8 +50,8 @@ object RelationActions extends Controller{
           val relatedTo = jsPerson.get
           val relation = Relation(myFromId, relatedTo.relationType, relatedTo.toId )
           for {
-            result <- DataAccess.saveRelation(relation)
-            indexResult <- SearchAccess.indexRelation(relation)
+            result <- dataAccess.saveRelation(relation)
+            indexResult <- searchAccess.indexRelation(relation)
           } yield Ok( Json.obj( "Location" -> ("/people/" + fromId.toString + "/relatedto/" + relatedTo.toId.toString ) ))
         }
       }

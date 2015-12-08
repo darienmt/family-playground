@@ -3,14 +3,15 @@
 # ~~~~
 
 # People
-GET			/people/:id		    		      controllers.PersonActions.getPerson(id: String)
-POST        /people                           controllers.PersonActions.savePerson
-GET         /people/search/:name              controllers.PersonActions.getPeopleByName(name: String)
-GET         /people/:fromId/relatedto/:toId   controllers.RelationActions.getRelation(fromId: String, toId: String )
-POST        /people/:fromId/relatedto         controllers.RelationActions.saveRelation(fromId: String)
-GET         /people/:id/familytree/:maxDepth  controllers.PersonActions.getFamilyTree(id: String, maxDepth: Int)
-GET         /people/:id/familytree            controllers.PersonActions.getFamilyTreeDefault(id: String)
-GET         /people/:id/familytree/            controllers.PersonActions.getFamilyTreeDefault(id: String)
+GET			/people/:id		    		                    controllers.PersonActions.getPerson(id: String)
+POST        /people                                         controllers.PersonActions.savePerson
+GET         /people/search/:name                            controllers.PersonActions.getPeopleByName(name: String)
+GET         /people/:fromId/relatedto/:toId                 controllers.RelationActions.getRelation(fromId: String, toId: String )
+POST        /people/:fromId/relatedto                       controllers.RelationActions.saveRelation(fromId: String)
+GET         /people/:id/familytree/:maxDepth                controllers.PersonActions.getFamilyTree(id: String, maxDepth: Int)
+GET         /people/:id/familytree                          controllers.PersonActions.getFamilyTreeDefault(id: String)
+GET         /people/:id/familytree/                         controllers.PersonActions.getFamilyTreeDefault(id: String)
+GET         /people/:id/inrelationto/:relationType/:depth   controllers.PersonActions.getPeopleInRelationAtDepth(id: String, relationType: String, depth: Int)
 
 # Index
 GET         /                       controllers.Application.info

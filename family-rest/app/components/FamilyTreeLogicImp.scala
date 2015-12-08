@@ -1,18 +1,25 @@
-package controllers
+package components
 
 import java.util.UUID
 
-import dal.{SearchAccess, DataAccess}
-import data.{Relation, Person, FamilyTree}
-import play.api.Logger
+import data.{FamilyTree, Person, Relation}
 
 import scala.concurrent.{ExecutionContext, Future}
-import scala.util.{Failure, Success}
 
 /**
   * Encapsulate family tree calculation logic.
   */
-object FamilyTreeLogic {
+trait FamilyTreeLogicImp extends FamilyTreeLogic {
+
+  this: ExecutionContextComponent with DataAccessComponent with SearchAccessComponent =>
+
+  /**
+    * Returns all the relations at depth of the person provided.
+    * @param id Provided identifier.
+    * @param relationType Relation type.
+    * @param depth Depth.
+    */
+  def getRelationsAt(id: UUID, relationType: String, depth: Int)( implicit executionContext: ExecutionContext ) : Future[Seq[Person]] = ???
 
   /**
     * Builds the family tree for the person id with max depth
@@ -39,7 +46,7 @@ object FamilyTreeLogic {
     * @return
     */
   def personRelationAtDepth( id: UUID, depth: Int )( implicit executionContext: ExecutionContext ) : Future[(Seq[Person],Seq[Relation])] = depth match {
-    case 0 => DataAccess.getPerson(id).map {
+    case 0 => dataAccess.getPerson(id).map {
       case None => (Seq(), Seq())
       case Some( person ) => (Seq(person), Seq())
     }
@@ -75,7 +82,7 @@ object FamilyTreeLogic {
     */
   def aPersonAndItsRelations( id: UUID )( implicit executionContext: ExecutionContext ) : Future[(Seq[Person],Seq[Relation])] =
     for {
-      person <- DataAccess.getPerson(id) map { _.get }
+      person <- dataAccess.getPerson(id) map { _.get }
       relations <- findRelations( person.id )
     } yield unionPersonAndRelations( (Seq(person), Seq()), relations)
 
@@ -99,9 +106,9 @@ object FamilyTreeLogic {
     */
   def findRelations( id: UUID)( implicit executionContext: ExecutionContext ) : Future[(Seq[Person],Seq[Relation])] =
     for {
-      relations <- SearchAccess.findRelations( id )
+      relations <- searchAccess.findRelations( id )
       people <- peopleByRelations(relations)
-    } yield (people, relations.toSeq)
+    } yield (people, relations )
 
   /**
     * Find people by their relations.
@@ -110,7 +117,7 @@ object FamilyTreeLogic {
     * @return
     */
   def peopleByRelations( relations: Seq[Relation])( implicit executionContext: ExecutionContext ) : Future[Seq[Person]] =
-    Future.sequence( relations.map( r => DataAccess.getPerson( r.toId )) ) map {
+    Future.sequence( relations.map( r => dataAccess.getPerson( r.toId )) ) map {
       people => people.filter(_.nonEmpty).map( p => p.get )
     }
 }

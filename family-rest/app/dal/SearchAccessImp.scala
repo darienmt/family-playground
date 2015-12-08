@@ -5,17 +5,18 @@ import java.util.UUID
 import com.sksamuel.elastic4s.{ElasticsearchClientUri, ElasticClient, HitAs, RichSearchHit}
 import com.sksamuel.elastic4s.ElasticDsl._
 import com.sksamuel.elastic4s.source.Indexable
+import components.SearchAccess
 import data.{Relation, Person}
 import play.api.libs.json.Json
 import play.api.Play
 
-import scala.concurrent.ExecutionContext
+import scala.concurrent.{Future, ExecutionContext}
 ;
 
 /**
   * Allows to search data.
   */
-object SearchAccess {
+object SearchAccessImp extends SearchAccess {
 
   implicit object PersonIndexable extends Indexable[Person] {
     override def json(p: Person): String = Json.stringify( Json.toJson(p) )
@@ -45,9 +46,11 @@ object SearchAccess {
     * @param person Person to index.
     * @return
     */
-  def indexPerson( person: Person ) =
+  def indexPerson( person: Person )( implicit executionContext: ExecutionContext ) : Future[Long]=
     client.execute {
       index into "family-tree" / "people" id person.id.toString source person
+    } map {
+      resp => resp.getVersion
     }
 
   /**
@@ -55,9 +58,11 @@ object SearchAccess {
     * @param relation Relation to index.
     * @return
     */
-  def indexRelation( relation: Relation ) =
+  def indexRelation( relation: Relation )( implicit executionContext: ExecutionContext ) : Future[Long] =
     client.execute {
-      index into "family-tree" / "relations" id ( Utils.combineIds(relation.fromId, relation.toId) ) source relation
+      index into "family-tree" / "relations" id Utils.combineIds(relation.fromId, relation.toId) source relation
+    } map {
+      resp => resp.getVersion
     }
 
   /**
@@ -68,11 +73,11 @@ object SearchAccess {
     * @param executionContext Execution context.
     * @return
     */
-  def searchPeopleByName( name: String, from: Integer, limit: Integer )( implicit executionContext: ExecutionContext )=
+  def searchPeopleByName( name: String, from: Integer, limit: Integer )( implicit executionContext: ExecutionContext ) : Future[Seq[Person]]=
     client.execute {
       search in "family-tree" / "people" start from limit limit sort ( field sort "name" ) rawQuery( "{ \"query_string\" : { \"query\" : \"name:*" + name +  "*\" } }" )
     } map {
-      resp => resp.as[Person]
+      resp => resp.as[Person].toSeq
     }
 
 
@@ -86,6 +91,6 @@ object SearchAccess {
     client.execute {
       search in "family-tree" / "relations" query termQuery( "fromId", fromId.toString )
     } map {
-      resp => resp.as[Relation].toList
+      resp => resp.as[Relation].toSeq
     }
 }
