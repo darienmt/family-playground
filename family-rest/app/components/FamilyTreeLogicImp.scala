@@ -14,12 +14,44 @@ trait FamilyTreeLogicImp extends FamilyTreeLogic {
   this: ExecutionContextComponent with DataAccessComponent with SearchAccessComponent =>
 
   /**
-    * Returns all the relations at depth of the person provided.
+    * Returns people with the relationType at depth of the person provided.
     * @param id Provided identifier.
     * @param relationType Relation type.
     * @param depth Depth.
     */
-  def getRelationsAt(id: UUID, relationType: String, depth: Int)( implicit executionContext: ExecutionContext ) : Future[Seq[Person]] = ???
+  def getRelationsAt(id: UUID, relationType: String, depth: Int)( implicit executionContext: ExecutionContext ) : Future[Seq[Person]] = {
+    depth match {
+      case d if d <= 0 => Future.successful(Seq())
+      case 1 => for {
+                  relations <- searchAccess.findRelationsType( id, relationType )
+                  people <- peopleByRelations(relations)
+                } yield people
+      case _ => for {
+                  relations <- searchAccess.findRelations( id )
+                  people <- getNextRelationAtDepth(relations.map(_.toId), relationType, depth)
+                } yield people
+    }
+  }
+
+  /**
+    * Joins people relation at depth with the provided relation type.
+    * @param ids People identifiers.
+    * @param relationType Relation type.
+    * @param depth Depth
+    * @param executionContext
+    * @return
+    */
+  def getNextRelationAtDepth(ids: Seq[UUID], relationType: String, depth: Int)(implicit executionContext: ExecutionContext ) : Future[Seq[Person]] = {
+    ids match {
+      case Seq() => Future.successful(Seq())
+      case Seq(h) => getRelationsAt(h, relationType, depth - 1 )
+      case h :: tail =>
+        for {
+          hResult <- getRelationsAt(h, relationType, depth - 1 )
+          tResult <- getNextRelationAtDepth( tail, relationType, depth )
+        } yield hResult ++ tResult
+    }
+  }
 
   /**
     * Builds the family tree for the person id with max depth
@@ -47,13 +79,13 @@ trait FamilyTreeLogicImp extends FamilyTreeLogic {
     */
   def personRelationAtDepth( id: UUID, depth: Int )( implicit executionContext: ExecutionContext ) : Future[(Seq[Person],Seq[Relation])] = depth match {
     case 0 => dataAccess.getPerson(id).map {
-      case None => (Seq(), Seq())
-      case Some( person ) => (Seq(person), Seq())
-    }
-    case _ =>  for {
-      (people,relations) <- aPersonAndItsRelations(id)
-      results <- peopleRelationAtDepth( relations.map(_.toId), depth)
-    } yield unionPersonAndRelations( (people, relations), results )
+                case None => (Seq(), Seq())
+                case Some( person ) => (Seq(person), Seq())
+              }
+    case _ => for {
+                (people,relations) <- aPersonAndItsRelations(id)
+                results <- peopleRelationAtDepth( relations.map(_.toId), depth)
+              } yield unionPersonAndRelations( (people, relations), results )
   }
 
   /**
@@ -66,12 +98,11 @@ trait FamilyTreeLogicImp extends FamilyTreeLogic {
   def peopleRelationAtDepth( ids: Seq[UUID], depth: Int )( implicit executionContext: ExecutionContext ) : Future[(Seq[Person],Seq[Relation])] = ids match {
     case Seq() => Future.successful(Seq(), Seq())
     case Seq(h) =>  personRelationAtDepth(h, depth - 1 )
-    case h :: tail => {
+    case h :: tail =>
       for {
         headResult <- personRelationAtDepth(h, depth - 1 )
         tailResult <- peopleRelationAtDepth(tail, depth )
       } yield unionPersonAndRelations(headResult, tailResult)
-    }
   }
 
   /**

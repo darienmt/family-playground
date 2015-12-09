@@ -43,4 +43,13 @@ trait SearchAccess {
     * @return
     */
   def findRelations(fromId: UUID)( implicit executionContext: ExecutionContext ) : Future[Seq[Relation]]
+
+  /**
+    * Finds relationType relations from the provided identifier.
+    * @param fromId From person identifier.
+    * @param relationType Relation type.
+    * @param executionContext
+    * @return
+    */
+  def findRelationsType(fromId: UUID, relationType: String )( implicit executionContext: ExecutionContext ): Future[Seq[Relation]]
 }

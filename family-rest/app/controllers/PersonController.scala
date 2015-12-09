@@ -90,6 +90,13 @@ trait PersonController extends Controller {
     */
   def getFamilyTreeDefault( id : String ) = getFamilyTree(id, 1)
 
+  /**
+    * Find all the people related to a person at the provided depth.
+    * @param id Person identifier.
+    * @param relationType Relation type.
+    * @param depth Relation depth.
+    * @return
+    */
   def getPeopleInRelationAtDepth( id: String, relationType: String, depth: Int) = Action.async {
     Try( {
       UUID.fromString( id )

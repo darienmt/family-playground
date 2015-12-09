@@ -77,7 +77,7 @@ object SearchAccessImp extends SearchAccess {
     client.execute {
       search in "family-tree" / "people" start from limit limit sort ( field sort "name" ) rawQuery( "{ \"query_string\" : { \"query\" : \"name:*" + name +  "*\" } }" )
     } map {
-      resp => resp.as[Person].toSeq
+      resp => resp.as[Person].toList
     }
 
 
@@ -87,10 +87,30 @@ object SearchAccessImp extends SearchAccess {
     * @param executionContext
     * @return
     */
-  def findRelations(fromId: UUID)( implicit executionContext: ExecutionContext ) =
+  def findRelations(fromId: UUID)( implicit executionContext: ExecutionContext ): Future[Seq[Relation]] =
     client.execute {
       search in "family-tree" / "relations" query termQuery( "fromId", fromId.toString )
     } map {
-      resp => resp.as[Relation].toSeq
+      resp => resp.as[Relation].toList
+    }
+
+  /**
+    * Finds relationType relations from the provided identifier.
+    * @param fromId From person identifier.
+    * @param relationType Relation type.
+    * @param executionContext
+    * @return
+    */
+  def findRelationsType(fromId: UUID, relationType: String )( implicit executionContext: ExecutionContext ): Future[Seq[Relation]] =
+    client.execute {
+      search in "family-tree" / "relations" query {
+        bool {
+          must {
+            termQuery( "fromId", fromId.toString )
+          }
+        }
+      }
+    } map {
+      resp => resp.as[Relation].filter( _.relationType == relationType ).toList
     }
 }

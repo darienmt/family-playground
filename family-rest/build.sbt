@@ -15,3 +15,5 @@ libraryDependencies ++= Seq(
 resolvers += "ReactiveCouchbase" at "https://raw.github.com/ReactiveCouchbase/repository/master/releases"
 
 libraryDependencies += "com.sksamuel.elastic4s" %% "elastic4s-core" % "2.1.0"
+
+libraryDependencies += "org.scalatest" %% "scalatest" % "2.2.4" % "test"

@@ -203,3 +203,30 @@ Sample response body:
   ]
 }
 ```
+
+# Get people related to a person with a relation type at certain depth
+
+### Request
+- URI: /people/:id/inrelationto/:relationType/:depth
+- HTTP Verb: GET
+- Request body should be empty
+
+Sample request
+```
+curl http://localhost:9000/people/d6932481-dbda-4dec-aca8-68d1466b98f2/inrelationto/Father/3
+```
+
+### Response
+- HTTP Status: 200 OK
+- HTTP Headers:
+    - Content-Type : application/json
+
+Sample response body:
+```
+[
+  {
+    "id": "be40af31-2b40-4a5a-ac09-dca8041c5c47",
+    "name": "P6"
+  }
+]
+```
