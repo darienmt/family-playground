@@ -90,8 +90,3 @@ The scripts assume docker, and docker-machine is installed locally, but they cou
 - ConfigureEs.sh : Configure the newly created Elasticseach instance with an index and mappings.
 - AddSomePeople.sh : Once the family-rest service is running, this script will create some people on it, and also serve as an example of the service usage.
 
-
-
-
-[![Bitdeli Badge](https://d2weczhvl823v0.cloudfront.net/darienmt/family-playground/trend.png)](https://bitdeli.com/free "Bitdeli Badge")
-
